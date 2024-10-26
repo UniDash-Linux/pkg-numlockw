@@ -1,49 +1,42 @@
 {
   lib,
-  python3Packages,
+  python312Packages,
   fetchFromGitHub,
-  fetchPypi,
 }:
 ############
 # Packages #
 #########################################################################
 let
-  comment = "Python3 Hello World";
-  pname = "pip-hello-world";
-  version = "0.1";
-in python3Packages.buildPythonApplication rec {
+  comment = "NumLockX clone for wayland";
+  pname = "numlockw";
+  version = "a1345169edbd76bef4a69e2a37f96bf8771a577d";
+in python312Packages.buildPythonApplication rec {
   ## ----------------------------------------------------------------- ##
   inherit pname version;
   format = "pyproject";         # for not setup.py
   dontUseCmakeConfigure = true; # for not setup.py
   doCheck = false;
   ## ----------------------------------------------------------------- ##
-  src = fetchPypi {
-    inherit pname version;
-    hash = "sha256-framXG712U7EWdZAP5Xz7dzEGkomaF7aoF7kX6sq5GU=";
+  src = fetchFromGitHub {
+    owner = "xz-dev";
+    repo = "numlockw";
+    rev = version;
+    hash = "sha256-uUwXmW/XNjDVDzlu4oNtYSuXqwy+snKNi5is+Jh7eNg=";
   };
   ## ----------------------------------------------------------------- ##
-  # src = fetchFromGitHub {
-  #   owner = "pedrocunial";
-  #   repo = "pip-helloworld";
-  #   rev = version; # 7385eb989647509325d4f8f60e839ee699f5802a
-  #   sha256 = "";
-  # };
+  preBuild = ''
+    sed -i "s/evdev==1.7.1/evdev==1.7.0/g" ./requirements.txt
+  '';
   ## ----------------------------------------------------------------- ##
-  # nativeBuildInputs = [
-  # ];
-  #
-  # buildInputs = [
-  # ];
-  ## ----------------------------------------------------------------- ##
-  propagatedBuildInputs = with python3Packages; [
+  propagatedBuildInputs = with python312Packages; [
     setuptools
+    evdev
   ];
   ## ----------------------------------------------------------------- ##
   meta = with lib; {
     description = comment;
     homepage = "https://github.com/RevoluNix/pkg-python311Package.template/";
-    license = licenses.lgpl2;
+    license = licenses.gpl3;
     platforms = platforms.linux;
     maintainers = with maintainers; [ pikatsuto ];
     mainProgram = pname;
