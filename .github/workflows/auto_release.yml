@@ -1,0 +1,66 @@
+on:
+  push:
+    branches:
+    - main
+
+jobs:
+  auto_ralease:
+    name: auto create and push release
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: cachix/install-nix-action@v27
+
+      - name: Checkout repository
+        uses: actions/checkout@master
+          
+      - name: Generate Release version from date
+        id: date
+        run: |
+          TAG_NAME="release-$(date +'%Y.%m.%d-%H.%M.%S')"
+          PKG_NAME="$(basename "${{ github.repository }}" | sed 's/pkg-//g')"
+          echo "PKG_NAME=$PKG_NAME" >> $GITHUB_ENV
+          echo "TAG_NAME=$TAG_NAME" >> $GITHUB_ENV
+          echo "Tag name will be: $TAG_NAME"
+      
+      - name: Build test package.nix
+        id: build_test_package
+        run: |
+          nix build
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: ${{ env.TAG_NAME }}
+          tag_name: ${{ env.TAG_NAME }}
+          prerelease: false
+          files: |
+            ./${{ env.FILE_NAME }}
+            ./package.nix
+
+      - name: Clone RevoluNixPKGS
+        uses: actions/checkout@master
+        with:
+          ref: testing
+          repository: RevoluNix/revolunixpkgs
+          token: ${{ secrets.RevoluNixPKGS_TOKEN }}
+
+      - name: Update RevoluNixPKGS
+        id: update_pkgs
+        run: |
+          git config --global user.email "${{ github.event.pusher.email }}"
+          git config --global user.name "${{ github.event.pusher.name }}"
+          
+          URL="https://github.com/${{ github.repository }}/releases/download/${{ env.TAG_NAME }}/package.nix"
+          rm -rf ./pkgs/${{ env.PKG_NAME }}
+          mkdir -p ./pkgs/${{ env.PKG_NAME }}
+          wget -O ./pkgs/${{ env.PKG_NAME }}/package.nix $URL
+          
+          git add .
+          git commit -m "feat: Update/Upload ${{ env.PKG_NAME }} package"
+          
+      - name: Push RevoluNixPKGS changes
+        uses: ad-m/github-push-action@master
+        with:
+          github_token: ${{ secrets.RevoluNixPKGS_TOKEN }}
+          repository: RevoluNix/revolunixpkgs
+          branch: testing

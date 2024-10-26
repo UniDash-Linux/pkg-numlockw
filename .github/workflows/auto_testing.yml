@@ -1,0 +1,38 @@
+on:
+  push:
+    branches:
+    - testing
+
+jobs:
+  auto_ralease:
+    name: auto create and push release
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: cachix/install-nix-action@v27
+
+      - name: Checkout repository
+        uses: actions/checkout@master
+        with:
+          ref: testing
+          
+      - name: Generate Release version from date
+        id: date
+        run: |
+          TAG_NAME="testing-$(date +'%Y.%m.%d-%H.%M.%S')"
+          echo "TAG_NAME=$TAG_NAME" >> $GITHUB_ENV
+          echo "Tag name will be: $TAG_NAME"
+      
+      - name: Build test package.nix
+        id: build_test_package
+        run: |
+          nix build
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: ${{ env.TAG_NAME }}
+          tag_name: ${{ env.TAG_NAME }}
+          prerelease: true
+          files: |
+            ./${{ env.FILE_NAME }}
+            ./package.nix
